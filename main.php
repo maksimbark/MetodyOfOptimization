@@ -64,14 +64,7 @@ function drawGraphWithApprox()
     global $a;
     global $currentFindArray;
 
-    $bestApproxValue = 999999999999;
-
-    foreach ($currentFindArray as $item) {
-        if (checkApprox($item) < $bestApproxValue) {
-            $bestApproxValue = checkApprox($item);
-            $bestApproxArray = $item;
-        }
-    }
+    $bestApproxArray = $currentFindArray;
 
     require('firstpart.html');
     //var_dump($bestApproxArray);
@@ -161,7 +154,7 @@ function getCurrentValue($point)
 
     $distance = $maxiX - $miniX;
     $height = $maxi - $mini;
-
+	
     return $mini + ((($point - $miniX) * $height) / $distance);
 }
 
@@ -206,119 +199,207 @@ function getCurrentValueOfArray($array, $point)
     return $mini + ((($point - $miniX) * $height) / $distance);
 }
 
-function checkApprox($array)
+function checkApproxParabola($x1, $i1, $y1, $x2, $i2)
 {
-    $final = $array[count($array) - 1][0];
-
-    $first = $array[0][0];
-
     $sumOfRaznostSqr = 0;
+	$a = ($i2-$i1)/($x2-$x1)/2;
+	$b = $i1 - 2*$a*$x1;
+	$c = $y1 - $a*$x1*$x1 -$b*$x1;
     //далее можно задать шаг проверки аппроксимации, например
-    for ($i = $first; $i <= $final; $i += 0.1) {
+    for ($i = $x1; $i <= $x2; $i += 0.1) {
         $idealValue = getCurrentValue($i);
-        $approxValue = getCurrentValueOfArray($array, $i);
+        $approxValue = $a*$i*$i + $b*$i + $c;
         $sumOfRaznostSqr += ($idealValue - $approxValue) * ($idealValue - $approxValue);
     }
     return $sumOfRaznostSqr;
 }
 
-function firstStep()
-{
-    global $config;
-    global $currentFindArray;
-
-    // echo('Starting at X = ' . $config['startX'] . ' trying to start on y = ' . PHP_EOL);
-    $y = getCurrentValue($config['startX']);
-
-    for ($i = $y - $config['yMax']; $i <= $y + $config['yMax']; $i += $config['step']) {
-        $startArray[] = [$config['startX'], $i];
-    }
-
-    // echo('To the points:' . PHP_EOL);
-
-    for ($i = $config['startX'] + $config['xMin']; $i <= $config['startX'] + $config['xMax']; $i += $config['step']) {
-        $y = getCurrentValue($i);
-        for ($j = $y - $config['yMax']; $j <= $y + $config['yMax']; $j += $config['step']) {
-            //echo($i . ' ' . $j . PHP_EOL);
-            $bestApproxValue = 999999999999;
-
-            foreach ($startArray as $element) {
-
-                $letsFind [] = $element;
-                $letsFind [] = [$i, $j];
-                // var_dump($letsFind);
-                if (checkApprox($letsFind) < $bestApproxValue) {
-                    $bestApproxValue = checkApprox($letsFind);
-                    $bestApproxArray = $letsFind;
-                };
-                unset($letsFind);
-
-            }
-            $currentFindArray [] = $bestApproxArray;
-        }
-    }
-
-
-}
-
-;
-
-function furtherSteps()
-{
-    global $currentFindArray;
-    global $config;
-
-    $firstX = $currentFindArray[0][count($currentFindArray[0]) - 1][0];
-    $lastX = $currentFindArray[count($currentFindArray) - 1][count($currentFindArray[0]) - 1][0];
-    //echo $firstX . ' ' . $lastX;
-
-    for ($i = $firstX + $config['xMin']; $i <= $lastX + $config['xMax']; $i += $config['step']) {
-        $y = getCurrentValue($i);
-        for ($j = $y - $config['yMax']; $j <= $y + $config['yMax']; $j += $config['step']) {
-            //echo($i . ' ' . $j . PHP_EOL);
-            $bestApproxValue = 999999999999;
-
-            foreach ($currentFindArray as $element) {
-                if ((($i - $element[count($element) - 1][0]) >= $config['xMin']) && (($i - $element[count($element) - 1][0]) <= $config['xMax'])) {
-
-                    $letsFind = $element;
-                    $letsFind [] = [$i, $j];
-
-                    if (checkApprox($letsFind) < $bestApproxValue) {
-                        $bestApproxValue = checkApprox($letsFind);
-                        $bestApproxArray = $letsFind;
-                    };
-                    unset($letsFind);
-                }
-
-            }
-            $newFindArray [] = $bestApproxArray;
-        }
-    }
-
-    $currentFindArray = $newFindArray;
-
-}
-
-;
-
 
 getini();
 getGraph();
-firstStep();
-furtherSteps();
-furtherSteps();
-furtherSteps();
 
+//firstStep();
+//furtherSteps();
+//furtherSteps();
+//furtherSteps();
+
+
+
+$X_MIN = $config['xMin'];
+$X_MAX = $config['xMax'];
+$X_END = $config['endX'];
+//$Y_END = $config['endY'];
+$Y_END = getCurrentValue($X_END);
+$Y_MAX = $config['yMax'];
+$I_START = $config['iStart'];
+$step_x = $config['xStep'];
+$step_y = $config['yStep'];
+$eps = $config['epsilon'];
+$vertical_number = ($X_MAX-$X_MIN)/$step_x + 1;
+$y_number = 2*$Y_MAX/$step_y + 1;
+$paths = array();
+$point_arr = array(array());
+$i = 0;
+$answer = array("score" => INF, "prev" => false, "x" => $X_END, "y" => $Y_END);
+$answer["curr_point"] = &$answer;
+for($point_y = getCurrentValue($config['startX'])-$Y_MAX; $point_y <= getCurrentValue($config['startX']+$Y_MAX); $point_y += $step_y)
+{
+	$paths[$i] = array("x" => $config['startX'], "y" => $point_y, "connections" => array(array("i" => $I_START, "prev" => false)));
+	$paths[$i]["connections"][0]["curr_point"] = &$paths[$i];
+	$point_arr[0][$i] = array("x" => $config['startX'], "y" => $point_y, "approxes" => array(array("i" => $I_START, "approx_score" => 0, "ref_to_path" => &$paths[$i]["connections"][0])));
+	$i++;
+}
+$path_prev_start_index = 0;
+$path_prev_end_index = $y_number;
+$path_curr_start_index = $y_number;
+$path_curr_end_index = $path_curr_start_index;
+while(count($point_arr) > 0)
+{
+	$new_point_arr = array();
+	$new_x = $point_arr[0][0]["x"] + $X_MIN;
+	for($i = 0; $i < count($point_arr) + $vertical_number - 1; $i++)
+	{	
+		if($new_x + $X_MIN <= $X_END)
+		{
+			$new_y = getCurrentValue($new_x)-$Y_MAX;
+			for($j = 0; $j < $y_number; $j++)
+			{
+				$paths[$path_curr_start_index + $i * $y_number + $j] = array("x" => $new_x, "y" => $new_y, "connections" => array());
+				//$paths[$path_curr_start_index + $i * $y_number + $j]["connections"]["curr_point"] = &$paths[$path_curr_start_index + $i * $y_number + $j];
+				$new_point_arr[$i][$j] = array("x" => $new_x, "y" => $new_y, "approxes" => array());
+				$new_y += $step_y;
+			}
+			$new_x += $step_x;
+			$path_curr_end_index += $y_number;
+		}
+		else
+			break;
+	}
+	//var_dump($new_point_arr);
+	$cur_start = 0;
+	if(count($new_point_arr) >= $vertical_number)
+	{
+		$cur_end = $vertical_number;
+	}
+	else
+	{
+		$cur_end = count($new_point_arr);
+	}
+	for($i = 0; $i < count($point_arr); $i++)
+	{
+		$vertical = $point_arr[$i];
+		if($vertical[0]["x"] + 2*$X_MIN > $X_END)
+		{
+			if($vertical[0]["x"] + $X_MAX >= $X_END)
+			{
+				$new_point = array("x" => $X_END, "y" => $Y_END);
+				for($j = 0; $j < count($vertical); $j++)
+				{
+					$point = $vertical[$j];
+					foreach($point["approxes"] as $approxe)
+					{
+						$old_i = $approxe["i"];
+						$new_i = 2*($new_point["y"] - $point["y"])/($new_point["x"] - $point["x"]) - $old_i;
+						$approx_score = $approxe["approx_score"] + checkApproxParabola($point["x"], $old_i, $point["y"], $new_point["x"], $new_i);
+						if($approx_score < $answer["score"])
+						{
+							$answer["score"] = $approx_score;
+							$answer["prev"] = &$approxe["ref_to_path"];
+							$answer["i"] = $new_i;
+						}
+					}
+				}
+			}
+			continue;
+		}
+		$new_point = array("x" => $vertical[0]["x"] + $X_MIN, "y" => getCurrentValue($vertical[0]["x"] + $X_MIN)-$Y_MAX);
+		for($j = $cur_start; $j < $cur_end; $j++)
+		{
+			for($k = 0; $k < count($vertical); $k++)
+			{
+				$point = $vertical[$k];
+				$new_point["y"] = getCurrentValue($new_point["x"])-$Y_MAX;
+				for($l = 0; $l < $y_number; $l++)
+				{
+					foreach($point["approxes"] as $approxe)
+					{
+						$old_i = $approxe["i"];
+						$new_i = 2*($new_point["y"] - $point["y"])/($new_point["x"] - $point["x"]) - $old_i;
+						//посчитать i конечный - готово
+						$approx_score = $approxe["approx_score"] + checkApproxParabola($point["x"], $old_i, $point["y"], $new_point["x"], $new_i);//+ функция, которой еще нет))00
+						$found_near = false;
+						foreach($new_point_arr[$j][$l]["approxes"] as $new_point_approx) //это массив ее i и показателей аппроксимации
+						{
+							if(abs($new_i - $new_point_approx["i"]) < $eps)
+							{
+								//$found_near = true
+							}
+						}
+						if(!$found_near)
+						{
+							$new_index = count($paths[$path_curr_start_index + $j * $y_number + $l]["connections"]);
+							$paths[$path_curr_start_index + $j * $y_number + $l]["connections"][$new_index] = array("i" => $new_i,  "prev" => &$approxe["ref_to_path"], "curr_point" => &$paths[$path_curr_start_index + $j * $y_number + $l]);
+							$new_point_arr[$j][$l]["approxes"][] = array("i" => $new_i, "approx_score" => $approx_score, "ref_to_path" => &$paths[$path_curr_start_index + $j * $y_number + $l]["connections"][$new_index]);
+						}
+					}
+					$new_point["y"] += $step_y;
+				}
+			}	
+			$new_point["x"] += $step_x;
+		}
+		$cur_start++;
+		if($cur_end < count($new_point_arr))
+		{
+			$cur_end++;
+		}
+
+	}
+	$path_prev_start_index = $path_curr_start_index;
+	$path_prev_end_index = $path_curr_end_index;
+	$path_curr_start_index = $path_prev_end_index;
+	$path_curr_end_index = $path_curr_start_index;
+	$point_arr = $new_point_arr;
+}
+
+$graph_step = 0.1;
+$x2 = $X_END;
+$x1 = 0;
+$curr_path_part = &$answer;
+$i = 0;
+$j = 0;
+do
+{
+	$i2 = $curr_path_part["i"];
+	$y2 = $curr_path_part["curr_point"]["y"];
+	$x2 = $curr_path_part["curr_point"]["x"];
+	$curr_path_part = &$curr_path_part["prev"];
+	$i1 = $curr_path_part["i"];
+	$y1 = $curr_path_part["curr_point"]["y"];
+	$x1 = $curr_path_part["curr_point"]["x"];
+	$a1 = ($i2-$i1)/($x2-$x1)/2;
+	$b = $i1 - 2*$a1*$x1;
+	$c = $y1 - $a1*$x1*$x1 -$b*$x1;
+	for($x = $x2;$x > $x1; $x -= $graph_step)
+	{
+		$currentFindArray[] = array(floatval($x), floatval($a1*$x*$x + $b*$x + $c));
+	}
+	$currentFindArray[] = array(floatval($x1), floatval($y1));
+} while($curr_path_part["prev"] !== false);
+
+$currentFindArray = array_reverse($currentFindArray);
+
+//var_dump($answer);
+//var_dump($paths);
+//var_dump($currentFindArray);
 
 drawGraphWithApprox();
 //var_dump($currentFindArray);
 //пример массива точек
 
-$qwe [0][] = [1.5, 1.5];
+/*$qwe [0][] = [1.5, 1.5];
 $qwe[0][] = [2.5, 2.5];
 $qwe [1][] = [2, 4];
-$qwe[1][] = [8, 64];
+$qwe[1][] = [8, 64];*/
 
 //echo getCurrentValueOfArray($qwe[1],4.3);
 //echo getCurrentValue(1.2);
