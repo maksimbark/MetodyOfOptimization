@@ -177,12 +177,10 @@ $X_END = $config['endX'];
 //$Y_END = $config['endY'];
 $Y_END = getCurrentValue($X_END);
 $Y_MAX = $config['yMax'];
-$I_START = $config['iStart'];
 $step_x = $config['xStep'];
 $step_y = $config['yStep'];
-$eps = $config['epsilon'];
-$vertical_number = ($X_MAX-$X_MIN)/$step_x + 1;
-$y_number = 2*$Y_MAX/$step_y + 1;
+$vertical_number = round(($X_MAX-$X_MIN)/$step_x - 0.5) + 1;
+$y_number = round(2*$Y_MAX/$step_y - 0.5) + 1;
 $paths = array();
 $point_arr = array(array());
 $i = 0;
@@ -194,8 +192,8 @@ for($point_y = getCurrentValue($config['startX'])-$Y_MAX; $point_y <= getCurrent
 	$point_arr[0][$i] = array("x" => $config['startX'], "y" => $point_y, "approxe" => array("approx_score" => 0, "ref_to_path" => &$paths[$i]));
 	$i++;
 }
-$path_prev_start_index = 0;
-$path_prev_end_index = $y_number;
+//$path_prev_start_index = 0;
+//$path_prev_end_index = $y_number;
 $path_curr_start_index = $y_number;
 $path_curr_end_index = $path_curr_start_index;
 while(count($point_arr) > 0)
@@ -263,12 +261,12 @@ while(count($point_arr) > 0)
 				for($l = 0; $l < $y_number; $l++)
 				{
 					$approxe = $point["approxe"];
-					$approx_score = $approxe["approx_score"] + checkApproxLine($point["x"], $point["y"], $new_point["x"], $new_point["y"]);//+ функция, которой еще нет))00
+					$approx_score = $approxe["approx_score"] + checkApproxLine($point["x"], $point["y"], $new_point["x"], $new_point["y"]);
 					if($approx_score < $new_point_arr[$j][$l]["approxe"]["approx_score"])
 					{
 						$new_point_arr[$j][$l]["approxe"]["approx_score"] = $approx_score;
 						$new_point_arr[$j][$l]["approxe"]["ref_to_path"]["prev"] = &$approxe["ref_to_path"];
-						$new_point_arr[$j][$l]["approxe"]["ref_to_path"]["score"] = $approx_score;
+						//$new_point_arr[$j][$l]["approxe"]["ref_to_path"]["score"] = $approx_score;
 					}
 					$new_point["y"] += $step_y;
 				}
@@ -282,19 +280,19 @@ while(count($point_arr) > 0)
 		}
 
 	}
-	$path_prev_start_index = $path_curr_start_index;
-	$path_prev_end_index = $path_curr_end_index;
-	$path_curr_start_index = $path_prev_end_index;
-	$path_curr_end_index = $path_curr_start_index;
+	//$path_prev_start_index = $path_curr_start_index;
+	//$path_prev_end_index = $path_curr_end_index;
+	$path_curr_start_index = $path_curr_end_index;
+	//$path_curr_end_index = $path_curr_start_index;
 	$point_arr = $new_point_arr;
 }
 
 
-$x2 = $X_END;
-$x1 = 0;
+//$x2 = $X_END;
+//$x1 = 0;
 $curr_path_part = &$answer;
-$i = 0;
-$j = 0;
+//$i = 0;
+//$j = 0;
 while($curr_path_part !== false)
 {
 	$x1 = $curr_path_part["x"];
