@@ -1,0 +1,8 @@
+startX 0
+endX 4.5
+endY 2.4
+xMin 2
+xMax 3
+yMax 1
+xStep 1
+yStep 0.5
